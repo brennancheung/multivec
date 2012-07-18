@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<head>
+  <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+  <title>SVG multitouch</title>
+</head>
+<html>
+<body>
+  <div id="log">log info goes here</div>
+  <svg id="svgContainer">
+    <defs>
+      <linearGradient id="circleGradient" x1="0%" y1="0%" x2="0%" y2="100%" spreadMethod="pad">
+        <stop offset="0%" stop-color="#004" stop-opacity="1" />
+        <stop offset="100%" stop-color="#00f" stop-opacity="1" />
+      </linearGradient>
+      
+      <linearGradient id="circleGradientHighlight" x1="0%" y1="0%" x2="0%" y2="100%" spreadMethod="pad">
+        <stop offset="0%" stop-color="#fff" stop-opacity="1" />
+        <stop offset="25%" stop-color="#00" stop-opacity="1" />
+        <stop offset="50%" stop-color="#fff" stop-opacity="1" />
+        <stop offset="75%" stop-color="#00" stop-opacity="1" />
+        <stop offset="100%" stop-color="#fff" stop-opacity="1" />
+      </linearGradient>
+    </defs>
+    <circle id="circle" cx="200" cy="200" r="30" fill="#00f" stroke="red" stroke-width="2" style="fill:url(#circleGradient)" />
+  </svg>
+<script type="text/javascript" charset="utf-8">
+  function $(id) { return document.getElementById(id); }
+  var circ = $('circle');
+  var log = $('log');
+  var deg2r = Math.PI/180;
+  
+  var svgContainer = $('svgContainer');
+  var svgNS = "http://www.w3.org/2000/svg";
+    
+  circ.addEventListener('touchstart', function(e) {
+    circ.setAttribute('fill', 'black');                 
+    circ.setAttribute('style', 'fill:url(#circleGradientHighlight)');
+    debugMetrics(circ);
+  });
+  
+  circ.addEventListener('touchend', function(e) {
+    circ.setAttribute('fill', 'blue');
+    circ.setAttribute('style', 'fill:url(none)');
+  });
+  
+  circ.addEventListener('touchmove', function(e) {
+    if (e.touches.length == 1) {
+      var touch = e.touches[0];
+      var node = touch.target;
+      node.setAttribute('cx', touch.pageX);
+      node.setAttribute('cy', touch.pageY);
+    };
+    
+    e.preventDefault();
+    debugMetrics(circ);
+  });
+  
+  var rStart;
+  
+  circ.addEventListener('gesturestart', function(e) {
+    rStart = circ.getAttribute('r');
+    e.preventDefault();
+  });
+  
+  circ.addEventListener('gesturechange', function(e) {
+    debugMetrics(circ);
+    circ.setAttribute('r', rStart * e.scale);
+    e.preventDefault();
+  });
+  
+  function debugMetrics(obj)
+  {
+    var cx = obj.getAttribute('cx');
+    var cy = obj.getAttribute('cy');
+    var r = obj.getAttribute('r');
+    log.innerHTML = "cx=" + cx + ', cy=' + cy + ', r=' + r;
+  }
+  
+  function setLog(text) { log.innerHTML = text; }
+  
+  document.addEventListener('touchstart', function (e) {
+    //setLog(e.touches.length);
+  });
+  
+  var numSlices = 9;
+  var sliceMargin = 0;
+  var sliceWidth = 360/numSlices;
+  for(var i=0; i<numSlices; i++) {
+    (function() {
+      var offset = 0;  // use to control the positioning
+      if (numSlices == 9) offset = 69;
+      var newSlice = createPieMenuSlice(350, 100, 180 + offset + i*sliceWidth, sliceWidth, 40, 100);
+      var temp = i;  // need to use a new function block otherwise i takes last value of loop
+      
+      newSlice.addEventListener('touchstart', function(e) {
+        e.target.setAttribute('fill', 'red');
+        // e.target.style.fill = 'red'; // TODO try this format
+        e.preventDefault();
+        setLog(temp);
+      });
+      
+      newSlice.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+      });
+      
+      newSlice.addEventListener('touchend', function(e) {
+        e.target.setAttribute('fill', '#ddd');
+      });
+      
+      svgContainer.appendChild(newSlice);
+    })();
+  }
+
+  function createPieMenuSlice(offsetX, offsetY, thetaStart, thetaWidth, r1, r2)
+  {
+    var thetaStart = thetaStart * deg2r;
+    var thetaWidth = thetaWidth * deg2r;
+    
+    var thetaCenter = thetaStart + (thetaWidth / 2);
+    var thetaEnd = thetaStart + thetaWidth;
+    var Ax = r2 * Math.cos(thetaStart)  + offsetX;
+    var Ay = r2 * Math.sin(thetaStart)  + offsetY;
+    var Bx = r2 * Math.cos(thetaCenter) + offsetX;
+    var By = r2 * Math.sin(thetaCenter) + offsetY;
+    var Cx = r2 * Math.cos(thetaEnd)    + offsetX;
+    var Cy = r2 * Math.sin(thetaEnd)    + offsetY;
+    
+    var Dx = r1 * Math.cos(thetaStart)  + offsetX;
+    var Dy = r1 * Math.sin(thetaStart)  + offsetY;
+    var Ex = r1 * Math.cos(thetaCenter) + offsetX;
+    var Ey = r1 * Math.sin(thetaCenter) + offsetY;
+    var Fx = r1 * Math.cos(thetaEnd)    + offsetX;
+    var Fy = r1 * Math.sin(thetaEnd)    + offsetY;
+    
+    var slice = document.createElementNS(svgNS,"path");
+    var rx2 = r2;
+    var rx1 = r1;
+    var d = 
+      'M' + Ax  + ',' + Ay  + ' ' +
+      'A' + rx2 + ',' + rx2 + ' ' +
+      thetaWidth + ' 0,1 ' +
+      Cx  + ',' + Cy + ' ' +
+      'L' + Fx  + ',' + Fy + ' ' +
+      'A' + rx1 + ',' + rx1 + ' ' +
+      thetaWidth + ' 0,0 ' +
+      Dx  + ',' + Dy + ' ' +
+      'Z';
+            
+    //setLog(d);
+    slice.setAttribute('d', d);
+    slice.setAttribute('stroke', 'black');
+    slice.setAttribute('fill', '#ddd');
+    return slice;
+  }
+  
+    // var arcDebugging =
+    //     'thetaStart=' + thetaStart.toFixed(2) + ', ' +
+    //     'thetaCenter=' + thetaCenter.toFixed(2) + ', ' +
+    //     'thetaEnd=' + thetaEnd.toFixed(2) + ', <br/>' +
+    //     'Ax=' + parseInt(Ax) + ', ' +
+    //     'Ay=' + parseInt(Ay) + ', ' +
+    //     'Bx=' + parseInt(Bx) + ', ' +
+    //     'By=' + parseInt(By) + ', ' +
+    //     'Cx=' + parseInt(Cx) + ', ' +
+    //     'Cy=' + parseInt(Cy) + ', ' +
+    //     '<br/>' +
+    //     'Dx=' + parseInt(Dx) + ', ' +
+    //     'Dy=' + parseInt(Dy) + ', ' +
+    //     'Ex=' + parseInt(Ex) + ', ' +
+    //     'Ey=' + parseInt(Ey) + ', ' +
+    //     'Fx=' + parseInt(Fx) + ', ' +
+    //     'Fy=' + parseInt(Fy);
+  
+  
+  // newRect.setAttribute('id', 'newRect');
+  // newRect.setAttribute('width', 50);
+  // newRect.setAttribute('height', 50);
+  // newRect.setAttribute('fill', 'black');
+  // newRect.setAttribute('stroke', 'red');
+  // newRect.setAttribute('stroke-width', '5');
+  // svgContainer.appendChild(newRect);
+
+  // var myCircle = document.createElementNS(svgNS,"circle");
+  //   myCircle.setAttribute("id","myCircle");
+  //   myCircle.setAttribute("cx",100);
+  //   myCircle.setAttribute("cy",100);
+  //   myCircle.setAttribute("r",50);
+  //   myCircle.setAttribute("fill","black");
+  //   myCircle.setAttribute("stroke","none");
+  //   svgContainer.appendChild(myCircle);
+  
+</script>
+</body>
+</html>
