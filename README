@@ -1,1 +1,7 @@
-nothing here yet
+This is an experiment with using multi-touch events in an effort to create a browser based vector editor.
+
+You can click the background to display the pie menu.  Select a direction to select a color.
+
+You can move the circle by clicking it and dragging.
+
+You can resize a circle by clicking 1 finger inside a circle and using a pinch gesture.
